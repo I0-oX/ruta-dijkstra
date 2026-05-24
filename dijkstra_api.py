@@ -1,6 +1,9 @@
 import sys
 import json
 
+# Force unbuffered output
+sys.stdout = open(sys.stdout.fileno(), 'w', buffering=1, encoding='utf-8')
+
 class Grafo:
     INF = float('inf')
 
@@ -83,55 +86,63 @@ class Grafo:
 def run():
     input_data = sys.stdin.read()
     if not input_data:
+        print(json.dumps({"error": "No input provided"}), flush=True)
         return
-    data = json.loads(input_data)
-    
-    g = Grafo()
-    for origen, destino, peso in data.get("aristas", []):
-        g.agregar_aristas(origen, destino, float(peso))
-    
-    origen = data.get("origen")
-    if not origen:
-        origen = list(g._grafo.keys())[0] if g._grafo else None
-    
-    if not origen:
-        print(json.dumps({"error": "No origin provided"}))
+    try:
+        data = json.loads(input_data)
+    except json.JSONDecodeError as e:
+        print(json.dumps({"error": f"Invalid input JSON: {str(e)}"}), flush=True)
         return
-        
-    S, P, nombre, idx, t, origen_calc = g.dijkstra(origen)
     
-    # Format trace and results
-    traza = []
-    for i, (x, updates) in enumerate(t, 1):
-        step_updates = []
-        for j, ant, nuevo in updates:
-            step_updates.append({
-                "nodo": nombre[j],
-                "ant": None if ant == Grafo.INF else ant,
-                "nuevo": nuevo,
-                "via": nombre[x]
-            })
-        traza.append({
-            "iteracion": i,
-            "vertice": nombre[x],
-            "distancia": S[x],
-            "updates": step_updates
-        })
+    try:
+        g = Grafo()
+        for origen, destino, peso in data.get("aristas", []):
+            g.agregar_aristas(origen, destino, float(peso))
         
-    resultados = []
-    for i in range(1, len(nombre) + 1):
-        if S[i] != Grafo.INF: # Solo accesibles
-            resultados.append({
-                "destino": nombre[i],
-                "distancia": S[i],
-                "camino": g._camino(P, i, nombre)
-            })
+        origen = data.get("origen")
+        if not origen:
+            origen = list(g._grafo.keys())[0] if g._grafo else None
         
-    print(json.dumps({
-        "origen": origen_calc,
-        "traza": traza,
-        "resultados": resultados
-    }))
+        if not origen:
+            print(json.dumps({"error": "No origin provided"}), flush=True)
+            return
+            
+        S, P, nombre, idx, t, origen_calc = g.dijkstra(origen)
+        
+        # Format trace and results
+        traza = []
+        for i, (x, updates) in enumerate(t, 1):
+            step_updates = []
+            for j, ant, nuevo in updates:
+                step_updates.append({
+                    "nodo": nombre[j],
+                    "ant": None if ant == Grafo.INF else ant,
+                    "nuevo": nuevo,
+                    "via": nombre[x]
+                })
+            traza.append({
+                "iteracion": i,
+                "vertice": nombre[x],
+                "distancia": S[x],
+                "updates": step_updates
+            })
+            
+        resultados = []
+        for i in range(1, len(nombre) + 1):
+            if S[i] != Grafo.INF: # Solo accesibles
+                resultados.append({
+                    "destino": nombre[i],
+                    "distancia": S[i],
+                    "camino": g._camino(P, i, nombre)
+                })
+            
+        print(json.dumps({
+            "origen": origen_calc,
+            "traza": traza,
+            "resultados": resultados
+        }), flush=True)
+    except Exception as e:
+        print(json.dumps({"error": f"Internal error: {str(e)}"}), flush=True)
 
 if __name__ == "__main__":
     run()

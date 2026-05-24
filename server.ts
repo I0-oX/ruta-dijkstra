@@ -32,15 +32,28 @@ async function startServer() {
       });
 
       pythonProcess.on("close", (code) => {
+        console.log("Python process closed with code:", code);
+        console.log("Output data:", outputData);
+        console.log("Error data:", errorData);
+        
         if (code !== 0) {
-          resolve(c.json({ error: "Failed to run algorithm" }, 500));
+          resolve(c.json({ error: errorData || "Failed to run algorithm" }, 500));
           return;
         }
+        
+        const trimmedOutput = outputData.trim();
+        if (!trimmedOutput) {
+          resolve(c.json({ error: "No output from algorithm" }, 500));
+          return;
+        }
+        
         try {
-          const result = JSON.parse(outputData);
+          const result = JSON.parse(trimmedOutput);
           resolve(c.json(result));
         } catch (err) {
-          resolve(c.json({ error: "Invalid response from algorithm" }, 500));
+          console.error("JSON parse error:", err);
+          console.error("Raw output:", outputData);
+          resolve(c.json({ error: "Invalid response from algorithm: " + trimmedOutput.substring(0, 100) }, 500));
         }
       });
 
