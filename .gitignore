@@ -1,7 +1,1 @@
-node_modules/
-build/
-dist/
-coverage/
-.DS_Store
-*.log
-.env*
+(index.html is a source file, so no changes needed to .gitignore)
