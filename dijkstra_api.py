@@ -1,9 +1,9 @@
-import sys
 import json
+from vercel import Request, Response
 
 class Grafo:
     INF = float('inf')
-
+    
     def __init__(self, primero=None):
         self._grafo = {}
         self._primero = primero
@@ -27,6 +27,9 @@ class Grafo:
             origen = self._primero
         nodos = list(self._grafo)
         n = len(nodos)
+        if n == 0:
+            return [], [], {}, {}, [], origen
+            
         idx = {nom: i + 1 for i, nom in enumerate(nodos)}
         nombre = {i + 1: nom for i, nom in enumerate(nodos)}
 
@@ -80,27 +83,29 @@ class Grafo:
             actual = P[actual]
         return " -> ".join(reversed(camino))
 
-def run():
-    input_data = sys.stdin.read()
-    if not input_data:
-        return
-    data = json.loads(input_data)
-    
+def run_dijkstra(data):
     g = Grafo()
-    for origen, destino, peso in data.get("aristas", []):
-        g.agregar_aristas(origen, destino, float(peso))
+    aristas = data.get("aristas", [])
+    
+    if not aristas:
+        # Handle case where no edges are provided but maybe nodes are implied? 
+        # For now, if no edges, we can't do much unless origin is enough for single node
+        pass
+        
+    for item in aristas:
+        if len(item) >= 3:
+            origen, destino, peso = item[0], item[1], item[2]
+            g.agregar_aristas(origen, destino, float(peso))
     
     origen = data.get("origen")
-    if not origen:
-        origen = list(g._grafo.keys())[0] if g._grafo else None
+    if not origen and g._grafo:
+        origen = list(g._grafo.keys())[0]
     
     if not origen:
-        print(json.dumps({"error": "No origin provided"}))
-        return
+        return {"error": "No origin provided"}
         
     S, P, nombre, idx, t, origen_calc = g.dijkstra(origen)
     
-    # Format trace and results
     traza = []
     for i, (x, updates) in enumerate(t, 1):
         step_updates = []
@@ -120,18 +125,60 @@ def run():
         
     resultados = []
     for i in range(1, len(nombre) + 1):
-        if S[i] != Grafo.INF: # Solo accesibles
+        if S[i] != Grafo.INF:
             resultados.append({
                 "destino": nombre[i],
                 "distancia": S[i],
                 "camino": g._camino(P, i, nombre)
             })
         
-    print(json.dumps({
+    return {
         "origen": origen_calc,
         "traza": traza,
         "resultados": resultados
-    }))
+    }
 
-if __name__ == "__main__":
-    run()
+def main(request: Request) -> Response:
+    # Handle CORS Pre-flight
+    if request.method == 'OPTIONS':
+        return Response(
+            status=200,
+            headers={
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+                'Access-Control-Allow-Headers': 'Content-Type'
+            }
+        )
+
+    if request.method == 'GET':
+        body = {"message": "Send POST request with {\"aristas\": [[\"A\",\"B\",5]], \"origen\": \"A\"}"}
+        return Response(
+            status=200,
+            body=json.dumps(body),
+            headers={'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}
+        )
+
+    if request.method != 'POST':
+        return Response(
+            status=405,
+            body=json.dumps({"error": "Method not allowed"}),
+            headers={'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}
+        )
+
+    try:
+        # Safely parse JSON
+        data = request.json() if request.body else {}
+    except Exception:
+        return Response(
+            status=400,
+            body=json.dumps({"error": "Invalid JSON"}),
+            headers={'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}
+        )
+
+    result = run_dijkstra(data)
+
+    return Response(
+        status=200,
+        body=json.dumps(result),
+        headers={'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}
+    )
