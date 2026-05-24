@@ -1,9 +1,9 @@
-import sys
 import json
+from http.server import BaseHTTPRequestHandler
 
 class Grafo:
     INF = float('inf')
-
+    
     def __init__(self, primero=None):
         self._grafo = {}
         self._primero = primero
@@ -80,12 +80,7 @@ class Grafo:
             actual = P[actual]
         return " -> ".join(reversed(camino))
 
-def run():
-    input_data = sys.stdin.read()
-    if not input_data:
-        return
-    data = json.loads(input_data)
-    
+def run_dijkstra(data):
     g = Grafo()
     for origen, destino, peso in data.get("aristas", []):
         g.agregar_aristas(origen, destino, float(peso))
@@ -95,12 +90,10 @@ def run():
         origen = list(g._grafo.keys())[0] if g._grafo else None
     
     if not origen:
-        print(json.dumps({"error": "No origin provided"}))
-        return
+        return {"error": "No origin provided"}
         
     S, P, nombre, idx, t, origen_calc = g.dijkstra(origen)
     
-    # Format trace and results
     traza = []
     for i, (x, updates) in enumerate(t, 1):
         step_updates = []
@@ -120,18 +113,42 @@ def run():
         
     resultados = []
     for i in range(1, len(nombre) + 1):
-        if S[i] != Grafo.INF: # Solo accesibles
+        if S[i] != Grafo.INF:
             resultados.append({
                 "destino": nombre[i],
                 "distancia": S[i],
                 "camino": g._camino(P, i, nombre)
             })
         
-    print(json.dumps({
+    return {
         "origen": origen_calc,
         "traza": traza,
         "resultados": resultados
-    }))
+    }
 
-if __name__ == "__main__":
-    run()
+class handler(BaseHTTPRequestHandler):
+    def do_POST(self):
+        content_length = int(self.headers.get('Content-Length', 0))
+        body = self.rfile.read(content_length).decode('utf-8')
+        
+        try:
+            data = json.loads(body) if body else {}
+        except json.JSONDecodeError:
+            self.send_response(400)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({"error": "Invalid JSON"}).encode())
+            return
+        
+        result = run_dijkstra(data)
+        
+        self.send_response(200)
+        self.send_header('Content-Type', 'application/json')
+        self.end_headers()
+        self.wfile.write(json.dumps(result).encode())
+
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header('Content-Type', 'application/json')
+        self.end_headers()
+        self.wfile.write(json.dumps({"message": "Send POST request with {\"aristas\": [[\"A\",\"B\",5]], \"origen\": \"A\"}"}).encode())
