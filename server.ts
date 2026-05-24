@@ -4,7 +4,11 @@ import { Hono } from 'hono';
 import { spawn } from 'child_process';
 import path from 'path';
 import fs from 'fs';
+import { fileURLToPath } from 'url';
 import { createServer as createViteServer } from 'vite';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 async function startServer() {
   const app = new Hono();
@@ -18,7 +22,8 @@ async function startServer() {
     }
     
     return new Promise<Response>((resolve) => {
-      const pythonProcess = spawn("python3", ["dijkstra_api.py"]);
+      const scriptPath = path.join(__dirname, "dijkstra_api.py");
+      const pythonProcess = spawn("python3", [scriptPath]);
       
       let outputData = "";
       let errorData = "";
@@ -33,14 +38,19 @@ async function startServer() {
 
       pythonProcess.on("close", (code) => {
         if (code !== 0) {
-          resolve(c.json({ error: "Failed to run algorithm" }, 500));
+          resolve(c.json({ error: `Python error: ${errorData || "Unknown error"}` }, 500));
+          return;
+        }
+        const trimmed = outputData.trim();
+        if (!trimmed) {
+          resolve(c.json({ error: `No output from script. stderr: ${errorData || "none"}` }, 500));
           return;
         }
         try {
-          const result = JSON.parse(outputData);
+          const result = JSON.parse(trimmed);
           resolve(c.json(result));
         } catch (err) {
-          resolve(c.json({ error: "Invalid response from algorithm" }, 500));
+          resolve(c.json({ error: `Invalid JSON from script: ${trimmed.slice(0, 200)}` }, 500));
         }
       });
 
