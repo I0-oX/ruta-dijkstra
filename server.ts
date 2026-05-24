@@ -79,20 +79,23 @@ async function startServer() {
   } else {
     const distPath = path.join(process.cwd(), "dist");
     
-    app.get("*", async (c, next) => {
-      if (c.req.path.startsWith('/api')) {
-        return next();
-      }
-      
-      // Serve static files if they exist
-      const filePath = path.join(distPath, c.req.path === '/' ? 'index.html' : c.req.path);
+    // Serve static assets from dist/assets
+    app.get("/assets/*", async (c) => {
+      const filePath = path.join(distPath, c.req.path);
       if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
         const mimeType = getMimeType(filePath);
         c.header('Content-Type', mimeType);
         return c.body(fs.readFileSync(filePath));
       }
+      return c.text("Asset not found", 404);
+    });
+    
+    app.get("*", async (c, next) => {
+      if (c.req.path.startsWith('/api')) {
+        return next();
+      }
       
-      // Fallback to index.html for SPA routing
+      // Serve index.html for root or SPA routes
       const html = fs.readFileSync(path.join(distPath, "index.html"), "utf-8");
       return c.html(html);
     });
