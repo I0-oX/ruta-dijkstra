@@ -1,5 +1,5 @@
 import json
-from vercel import Request, Response
+import sys
 
 class Grafo:
     INF = float('inf')
@@ -138,47 +138,13 @@ def run_dijkstra(data):
         "resultados": resultados
     }
 
-def main(request: Request) -> Response:
-    # Handle CORS Pre-flight
-    if request.method == 'OPTIONS':
-        return Response(
-            status=200,
-            headers={
-                'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-                'Access-Control-Allow-Headers': 'Content-Type'
-            }
-        )
-
-    if request.method == 'GET':
-        body = {"message": "Send POST request with {\"aristas\": [[\"A\",\"B\",5]], \"origen\": \"A\"}"}
-        return Response(
-            status=200,
-            body=json.dumps(body),
-            headers={'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}
-        )
-
-    if request.method != 'POST':
-        return Response(
-            status=405,
-            body=json.dumps({"error": "Method not allowed"}),
-            headers={'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}
-        )
-
+if __name__ == "__main__":
     try:
-        # Safely parse JSON
-        data = request.json() if request.body else {}
+        raw = sys.stdin.read()
+        data = json.loads(raw) if raw.strip() else {}
     except Exception:
-        return Response(
-            status=400,
-            body=json.dumps({"error": "Invalid JSON"}),
-            headers={'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}
-        )
+        print(json.dumps({"error": "Invalid JSON"}))
+        sys.exit(1)
 
     result = run_dijkstra(data)
-
-    return Response(
-        status=200,
-        body=json.dumps(result),
-        headers={'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}
-    )
+    print(json.dumps(result))
