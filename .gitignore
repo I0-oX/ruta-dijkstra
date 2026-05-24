@@ -1,13 +1,12 @@
-```gitignore
-# Dependencies
-node_modules/
-
-# Environment variables
+# Environment
 .env
 .env.local
 .env.*
 
-# Build outputs
+# Dependencies
+node_modules/
+
+# Build artifacts
 dist/
 build/
 target/
@@ -21,37 +20,30 @@ __pycache__/
 env/
 venv/
 .venv/
-.ENV
-.python-version
-
-# Logs
+.venv.bak/
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
 *.log
-
-# OS generated files
+*.tmp
+*.swp
 .DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
 Thumbs.db
-desktop.ini
 
-# Editor files
+# Editors
 .vscode/
 .idea/
 *.swp
 *.swo
 
-# Coverage
-coverage/
-htmlcov/
-.coverage
-
-# Temporary files
-*.tmp
-*.temp
-*.bak
+# Logs
+*.log
 
 # Compressed files
 *.zip
@@ -77,47 +69,15 @@ htmlcov/
 *.tar.xz
 *.tar.zst
 
-# MyPy
-.mypy_cache/
-
-# Pytest
+# Test and coverage
+coverage/
+htmlcov/
 .pytest_cache/
+.mypy_cache/
+.hypothesis/
 
-# Gradle
-.gradle/
-
-# Java
-*.class
-*.jar
-*.war
-*.ear
-*.nar
-*.so
-
-# C/C++
-*.o
-*.a
-*.obj
-*.out
-*.dll
-*.so
-
-# Go
-*.exe
-*.test
-*.prof
-
-# Ruby
-*.gem
-.bundle
-vendor/bundle/
-
-# Rust
-Cargo.lock
-
-# Julia
-julia-*/
-
-# Zig
-zig*/
-```
+# System
+.DS_Store
+Thumbs.db
+*.tmp
+*.temp
