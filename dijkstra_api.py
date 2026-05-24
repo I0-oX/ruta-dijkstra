@@ -1,6 +1,9 @@
 import sys
 import json
 
+# Force unbuffered output
+sys.stdout = open(sys.stdout.fileno(), 'w', buffering=1, encoding='utf-8')
+
 class Grafo:
     INF = float('inf')
 
